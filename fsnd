@@ -1,0 +1,73 @@
+#!/usr/bin/env python3
+import os
+import warnings
+warnings.filterwarnings("ignore")
+import argparse
+
+parser = argparse.ArgumentParser(description = 'Find and remove files with pattern..')
+parser.add_argument('-dir','--directory', type = str, help='Path of the directory')
+parser.add_argument('-r','--remove', type = bool, help='If remove True', nargs='?', const=False, default=False)
+#group = parser.add_mutually_exclusive_group(required=False)
+parser.add_argument('-e','--end_pattern', type = str,  action='store', help='file end pattern', nargs=1)
+parser.add_argument('-b','--start_pattern', type = str, action='store', help='file start pattern', nargs=1)
+args = parser.parse_args()
+
+def get_absolute_path(dir_name):
+    if dir_name==".":
+        dir_path = os.getcwd()
+    elif dir_name=="..":
+        cwd = os.getcwd().split("/") 
+        dir_path = "/".join(cwd[:-1])
+    else:
+        cwd = os.getcwd()
+        dir_path = cwd + "/" + dir_name 
+    return dir_path
+
+def getFiles(src, start_pattern=None, end_pattern=None):
+    files_list = []
+    for root, dirs, files in os.walk(src):
+        for file in files:
+            if start_pattern and end_pattern:
+                if file.endswith(end_pattern):
+                    if file.startswith(start_pattern):
+                        files_list.append(os.path.join(root, file))
+            elif start_pattern:
+                if file.startswith(start_pattern):
+                    files_list.append(os.path.join(root, file))
+            elif end_pattern:
+                if file.endswith(end_pattern):
+                    files_list.append(os.path.join(root, file))
+            else:
+                raise ValueError("Pass a pattern to search")
+
+    return files_list
+
+directory = args.directory
+src = get_absolute_path(directory)
+end_pattern = args.end_pattern
+start_pattern = args.start_pattern
+if start_pattern and end_pattern:
+    end_pattern = end_pattern[0]
+    start_pattern = start_pattern[0]
+    files_list = getFiles(src, end_pattern=end_pattern, start_pattern=start_pattern)
+elif start_pattern:
+    start_pattern = start_pattern[0]
+    files_list = getFiles(src, start_pattern=start_pattern)
+elif end_pattern:
+    end_pattern = end_pattern[0]
+    files_list = getFiles(src, end_pattern=end_pattern)
+else:
+    raise ValueError("Pass any pattern!")
+if len(files_list):
+    Show_files = input("   Want to show the files before deleting? [yes/no]  ") or "yes"
+    Show_files = Show_files.strip()
+    if Show_files == "yes":
+        for file in files_list:
+            print(file)
+
+    del_files = input(f"{len(files_list)} files found. Confirm deleting? [no/yes]  ") or "no"
+    if del_files.strip() == "yes":
+        for file in files_list:
+            os.remove(file)
+else:
+    print("   No file found with pattern!")
